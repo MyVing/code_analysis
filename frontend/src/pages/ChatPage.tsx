@@ -112,6 +112,7 @@ export default function ChatPage() {
       <div className="chat-messages">
         {messages.length === 0 ? (
           <div className="chat-empty">
+            <div className="chat-logo-ring">AI</div>
             <p className="chat-empty-title">选择一个功能开始分析</p>
             <div className="quick-actions">
               {QUICK_ACTIONS.map((action) => (

@@ -1,18 +1,23 @@
 .cn-node {
-  background: var(--color-bg);
-  border: 2px solid var(--color-border);
+  background: rgba(15, 20, 35, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(0, 212, 255, 0.15);
   border-radius: 8px;
   min-width: 140px;
   cursor: pointer;
-  transition: box-shadow 0.15s, border-color 0.15s;
+  transition: box-shadow 0.2s, border-color 0.2s;
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.05);
 }
 
 .cn-node:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border-color: rgba(0, 212, 255, 0.3);
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.1);
 }
 
 .cn-selected {
-  box-shadow: 0 0 0 2px var(--color-primary) !important;
+  border-color: rgba(0, 212, 255, 0.5) !important;
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.3), 0 0 40px rgba(0, 212, 255, 0.1) !important;
 }
 
 .cn-body {
@@ -25,7 +30,7 @@
 .cn-badge {
   width: 20px;
   height: 20px;
-  border-radius: 4px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -33,6 +38,7 @@
   font-weight: 700;
   color: #fff;
   flex-shrink: 0;
+  box-shadow: 0 0 8px rgba(0, 212, 255, 0.3);
 }
 
 .cn-label {
@@ -82,16 +88,16 @@
 }
 
 .cn-expand-hint:hover {
-  color: var(--color-primary);
+  color: #00d4ff;
 }
 
 .cn-expanded {
-  color: var(--color-primary);
+  color: #00d4ff;
 }
 
 .cn-handle {
   width: 8px;
   height: 8px;
-  background: var(--color-border);
-  border: 2px solid var(--color-bg);
+  background: rgba(0, 212, 255, 0.3);
+  border: 2px solid #0a0e1a;
 }

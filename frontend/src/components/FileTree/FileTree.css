@@ -2,7 +2,7 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: var(--color-bg);
+  background: rgba(10, 14, 26, 0.9);
 }
 
 .ft-header {
@@ -12,7 +12,7 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--color-text-secondary);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid rgba(0, 212, 255, 0.1);
   flex-shrink: 0;
 }
 
@@ -40,20 +40,21 @@
   color: var(--color-text);
   white-space: nowrap;
   overflow: hidden;
+  transition: background 0.15s;
 }
 
 .ft-item:hover {
-  background: var(--color-bg-secondary);
+  background: rgba(0, 212, 255, 0.06);
 }
 
 .ft-file.ft-selected {
-  background: var(--color-bg-tertiary);
+  background: rgba(0, 212, 255, 0.1);
   font-weight: 500;
 }
 
 .ft-file.ft-highlighted {
-  background: rgba(59, 130, 246, 0.08);
-  border-left: 2px solid #3b82f6;
+  background: rgba(0, 212, 255, 0.06);
+  border-left: 2px solid #00d4ff;
 }
 
 .ft-arrow {
@@ -75,7 +76,7 @@
 }
 
 .ft-symbols {
-  background: var(--color-bg-secondary);
+  background: rgba(0, 0, 0, 0.2);
 }
 
 .ft-symbol {
@@ -86,11 +87,12 @@
   cursor: pointer;
   font-size: 12px;
   color: var(--color-text-secondary);
+  transition: background 0.15s, color 0.15s;
 }
 
 .ft-symbol:hover {
   color: var(--color-text);
-  background: var(--color-bg-tertiary);
+  background: rgba(0, 212, 255, 0.06);
 }
 
 .ft-sym-icon {
@@ -106,7 +108,7 @@
 }
 
 .ft-symbol-class .ft-sym-icon {
-  background: #4f46e5;
+  background: #6366f1;
   color: #fff;
 }
 

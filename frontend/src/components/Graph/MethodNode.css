@@ -1,18 +1,23 @@
 .mn-node {
-  background: var(--color-bg);
-  border: 1.5px solid var(--color-border);
+  background: rgba(15, 20, 35, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(0, 212, 255, 0.12);
   border-radius: 6px;
   min-width: 120px;
   cursor: pointer;
-  transition: box-shadow 0.15s;
+  transition: box-shadow 0.2s, border-color 0.2s;
+  box-shadow: 0 0 10px rgba(0, 212, 255, 0.03);
 }
 
 .mn-node:hover {
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+  border-color: rgba(0, 212, 255, 0.25);
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.08);
 }
 
 .mn-selected {
-  box-shadow: 0 0 0 2px var(--color-primary) !important;
+  border-color: rgba(0, 212, 255, 0.5) !important;
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.3), 0 0 40px rgba(0, 212, 255, 0.1) !important;
 }
 
 .mn-body {
@@ -25,7 +30,7 @@
 .mn-badge {
   width: 16px;
   height: 16px;
-  border-radius: 3px;
+  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -33,6 +38,7 @@
   font-weight: 700;
   color: #fff;
   flex-shrink: 0;
+  box-shadow: 0 0 6px rgba(0, 212, 255, 0.25);
 }
 
 .mn-label {
@@ -75,23 +81,24 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-bg-tertiary);
+  background: rgba(0, 212, 255, 0.08);
+  border: 1px solid rgba(0, 212, 255, 0.15);
   transition: color 0.15s, background 0.15s;
 }
 
 .mn-expand-hint:hover {
-  color: var(--color-primary);
-  background: var(--color-bg-secondary);
+  color: #00d4ff;
+  background: rgba(0, 212, 255, 0.15);
 }
 
 .mn-expanded {
-  color: var(--color-primary);
-  background: var(--color-bg-secondary);
+  color: #00d4ff;
+  background: rgba(0, 212, 255, 0.15);
 }
 
 .mn-handle {
   width: 6px;
   height: 6px;
-  background: var(--color-border);
-  border: 2px solid var(--color-bg);
+  background: rgba(0, 212, 255, 0.3);
+  border: 2px solid #0a0e1a;
 }

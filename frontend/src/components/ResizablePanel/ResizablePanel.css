@@ -21,14 +21,15 @@
 
 .rp-divider {
   flex-shrink: 0;
-  background: var(--color-border);
-  transition: background 0.15s;
+  background: rgba(0, 212, 255, 0.15);
+  transition: background 0.2s, box-shadow 0.2s;
   z-index: 1;
 }
 
 .rp-divider:hover,
 .rp-divider:active {
-  background: var(--color-primary);
+  background: #00d4ff;
+  box-shadow: 0 0 8px rgba(0, 212, 255, 0.3);
 }
 
 .rp-divider-horizontal {

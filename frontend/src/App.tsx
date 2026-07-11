@@ -8,7 +8,10 @@ function App() {
   return (
     <BrowserRouter>
       <nav className="navbar">
-        <div className="navbar-brand">Code Analysis</div>
+        <div className="navbar-brand">
+          <span className="navbar-logo">CA</span>
+          Code Analysis
+        </div>
         <div className="navbar-links">
           <NavLink to="/" end className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
             Projects
@@ -19,6 +22,10 @@ function App() {
           <NavLink to="/chat" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
             AI Chat
           </NavLink>
+        </div>
+        <div className="navbar-status">
+          <span className="navbar-status-dot" />
+          Online
         </div>
       </nav>
       <Routes>

@@ -2,7 +2,7 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: #2d2d2d;
+  background: #0d1225;
   color: #ccc;
 }
 
@@ -11,15 +11,15 @@
   align-items: center;
   justify-content: space-between;
   padding: 6px 12px;
-  background: #1e1e1e;
-  border-bottom: 1px solid #3a3a3a;
+  background: rgba(10, 14, 26, 0.9);
+  border-bottom: 1px solid rgba(0, 212, 255, 0.1);
   flex-shrink: 0;
 }
 
 .cv-path {
   font-size: 12px;
   font-family: var(--font-mono);
-  color: #999;
+  color: #94a3b8;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -28,17 +28,19 @@
 .cv-copy {
   font-size: 11px;
   padding: 2px 8px;
-  border: 1px solid #555;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 3px;
   background: transparent;
-  color: #999;
+  color: #94a3b8;
   cursor: pointer;
   flex-shrink: 0;
+  transition: all 0.15s;
 }
 
 .cv-copy:hover {
-  background: #333;
-  color: #ccc;
+  background: rgba(0, 212, 255, 0.08);
+  border-color: rgba(0, 212, 255, 0.2);
+  color: #e2e8f0;
 }
 
 .cv-body {
@@ -53,7 +55,7 @@
   justify-content: center;
   color: var(--color-text-secondary);
   font-size: 13px;
-  background: var(--color-bg-secondary);
+  background: rgba(17, 24, 39, 0.4);
 }
 
 .cv-table {
@@ -70,19 +72,19 @@
 }
 
 .cv-row:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .cv-highlight {
-  background: rgba(255, 200, 0, 0.12) !important;
-  border-left: 2px solid #f59e0b;
+  background: rgba(0, 212, 255, 0.08) !important;
+  border-left: 2px solid #00d4ff;
 }
 
 .cv-linenum {
   width: 48px;
   text-align: right;
   padding-right: 12px;
-  color: #606060;
+  color: #475569;
   user-select: none;
   vertical-align: top;
 }
