@@ -1,11 +1,12 @@
 import uuid
 from collections import deque
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
+from app.core.exceptions import ProjectNotFoundError, SymbolNotFoundError, FileNotFoundError
 from app.models.file import File
 from app.models.graph import CallGraph, FieldAccess, Import, ImplementsRelation
 from app.models.project import Project
@@ -116,7 +117,7 @@ async def _fetch_implements_edges(db: AsyncSession, project_id: uuid.UUID, symbo
 async def get_call_graph(project_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     project = await db.get(Project, project_id)
     if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+        raise ProjectNotFoundError()
     stmt = select(CallGraph).where(CallGraph.project_id == project_id)
     result = await db.execute(stmt)
     return result.scalars().all()
@@ -126,7 +127,7 @@ async def get_call_graph(project_id: uuid.UUID, db: AsyncSession = Depends(get_d
 async def get_imports(project_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     project = await db.get(Project, project_id)
     if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+        raise ProjectNotFoundError()
     stmt = select(File).where(File.project_id == project_id)
     result = await db.execute(stmt)
     file_ids = [f.id for f in result.scalars().all()]
@@ -141,7 +142,7 @@ async def get_imports(project_id: uuid.UUID, db: AsyncSession = Depends(get_db))
 async def get_graph_visualization(project_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     project = await db.get(Project, project_id)
     if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+        raise ProjectNotFoundError()
 
     stmt = (
         select(Symbol, File.file_path)
@@ -187,11 +188,11 @@ async def expand_symbol_graph(
 ):
     project = await db.get(Project, project_id)
     if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+        raise ProjectNotFoundError()
 
     symbol = await db.get(Symbol, symbol_id)
     if not symbol:
-        raise HTTPException(status_code=404, detail="Symbol not found")
+        raise SymbolNotFoundError()
 
     child_stmt = (
         select(Symbol, File.file_path)
@@ -267,11 +268,11 @@ async def get_file_symbols(
     """Get all symbols in a file — initial view when clicking a file in the tree."""
     project = await db.get(Project, project_id)
     if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+        raise ProjectNotFoundError()
 
     file = await db.get(File, file_id)
     if not file or file.project_id != project_id:
-        raise HTTPException(status_code=404, detail="File not found")
+        raise FileNotFoundError()
 
     stmt = (
         select(Symbol, File.file_path)
@@ -328,11 +329,11 @@ async def expand_call(
     """Expand one method's outgoing calls — show what this method calls."""
     project = await db.get(Project, project_id)
     if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+        raise ProjectNotFoundError()
 
     symbol = await db.get(Symbol, symbol_id)
     if not symbol:
-        raise HTTPException(status_code=404, detail="Symbol not found")
+        raise SymbolNotFoundError()
 
     # Find call edges where this symbol is the caller
     stmt = select(CallGraph).where(
@@ -436,11 +437,11 @@ async def expand_class_calls(
     """Expand all methods of a class one layer — show all Service methods called by this class's methods."""
     project = await db.get(Project, project_id)
     if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+        raise ProjectNotFoundError()
 
     symbol = await db.get(Symbol, symbol_id)
     if not symbol:
-        raise HTTPException(status_code=404, detail="Symbol not found")
+        raise SymbolNotFoundError()
 
     method_stmt = select(Symbol).where(Symbol.parent_id == symbol_id)
     method_result = await db.execute(method_stmt)
@@ -541,11 +542,11 @@ async def get_full_chain(
     """Recursively trace the full call chain from a class — double-click to expand all."""
     project = await db.get(Project, project_id)
     if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+        raise ProjectNotFoundError()
 
     symbol = await db.get(Symbol, symbol_id)
     if not symbol:
-        raise HTTPException(status_code=404, detail="Symbol not found")
+        raise SymbolNotFoundError()
 
     # Start with the class and its methods
     start_ids: set[uuid.UUID] = {symbol_id}

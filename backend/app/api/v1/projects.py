@@ -1,17 +1,18 @@
 import shutil
 import uuid
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
 from app.core.config import settings
-from app.core.exceptions import ProjectNotFoundError
+from app.core.exceptions import ProjectNotFoundError, AnalysisInProgressError
 from app.models.file import File
 from app.models.project import Project, ProjectStatus
 from app.schemas.project import FileRead, ProjectCreate, ProjectRead, ProjectStatusUpdate
 from app.services.analysis_service import analysis_service
+from pathlib import Path
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
@@ -37,7 +38,7 @@ async def create_project(body: ProjectCreate, db: AsyncSession = Depends(get_db)
 async def get_project(project_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     project = await db.get(Project, project_id)
     if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+        raise ProjectNotFoundError()
     return project
 
 
@@ -45,9 +46,9 @@ async def get_project(project_id: uuid.UUID, db: AsyncSession = Depends(get_db))
 async def trigger_analysis(project_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     project = await db.get(Project, project_id)
     if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+        raise ProjectNotFoundError()
     if project.status in (ProjectStatus.CLONING, ProjectStatus.PARSING, ProjectStatus.INDEXING):
-        raise HTTPException(status_code=409, detail="Analysis already in progress")
+        raise AnalysisInProgressError()
     analysis_service.start_analysis(project.id)
     return project
 
@@ -56,7 +57,7 @@ async def trigger_analysis(project_id: uuid.UUID, db: AsyncSession = Depends(get
 async def list_project_files(project_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     project = await db.get(Project, project_id)
     if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+        raise ProjectNotFoundError()
     stmt = select(File).where(File.project_id == project_id).order_by(File.file_path)
     result = await db.execute(stmt)
     return result.scalars().all()
@@ -70,7 +71,7 @@ async def update_project_status(
 ):
     project = await db.get(Project, project_id)
     if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+        raise ProjectNotFoundError()
     for key, value in body.model_dump(exclude_unset=True).items():
         setattr(project, key, value)
     await db.commit()
@@ -82,9 +83,8 @@ async def update_project_status(
 async def delete_project(project_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     project = await db.get(Project, project_id)
     if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
-    # Clean up workspace
-    workspace_path = __import__("pathlib").Path(settings.WORKSPACE_DIR) / project.name
+        raise ProjectNotFoundError()
+    workspace_path = Path(settings.WORKSPACE_DIR) / project.name
     if workspace_path.exists():
         shutil.rmtree(str(workspace_path), ignore_errors=True)
     await db.delete(project)

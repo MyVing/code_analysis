@@ -1,11 +1,11 @@
 import uuid
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from app.api.deps import get_db
+from app.core.exceptions import ProjectNotFoundError, SymbolNotFoundError
 from app.models.file import File
 from app.models.symbol import Symbol, SymbolKind
 from app.schemas.symbol import SymbolQuery, SymbolRead
@@ -15,9 +15,9 @@ router = APIRouter(prefix="/symbols", tags=["symbols"])
 
 @router.get("/", response_model=list[SymbolRead])
 async def query_symbols(
-    name: str | None = Query(None),
-    kind: SymbolKind | None = Query(None),
-    file_id: uuid.UUID | None = Query(None),
+    name: str | None = None,
+    kind: SymbolKind | None = None,
+    file_id: uuid.UUID | None = None,
     db: AsyncSession = Depends(get_db),
 ):
     stmt = select(Symbol)
@@ -36,8 +36,7 @@ async def query_symbols(
 async def get_symbol(symbol_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     symbol = await db.get(Symbol, symbol_id)
     if not symbol:
-        from fastapi import HTTPException
-        raise HTTPException(status_code=404, detail="Symbol not found")
+        raise SymbolNotFoundError()
     return symbol
 
 
@@ -52,7 +51,7 @@ async def get_file_symbols(file_id: uuid.UUID, db: AsyncSession = Depends(get_db
 async def get_symbol_children(symbol_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     symbol = await db.get(Symbol, symbol_id)
     if not symbol:
-        raise HTTPException(status_code=404, detail="Symbol not found")
+        raise SymbolNotFoundError()
     stmt = (
         select(Symbol)
         .where(Symbol.parent_id == symbol_id)

@@ -1,11 +1,12 @@
 import json
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
+from app.core.exceptions import ProjectNotFoundError, ProjectNotReadyError
 from app.models.project import Project, ProjectStatus
 from app.schemas.chat import ChatRequest
 from app.services.agent.claude_client import run_agent_loop
@@ -21,9 +22,9 @@ async def chat(
 ):
     project = await db.get(Project, project_id)
     if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+        raise ProjectNotFoundError()
     if project.status != ProjectStatus.READY:
-        raise HTTPException(status_code=400, detail=f"Project status is {project.status.value}, must be ready")
+        raise ProjectNotReadyError(f"Project status is {project.status.value}, must be ready")
 
     async def event_generator():
         async for event in run_agent_loop(project_id, body.message, body.session_id):
