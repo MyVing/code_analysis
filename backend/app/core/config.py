@@ -1,4 +1,8 @@
+from pathlib import Path
+
 from pydantic_settings import BaseSettings
+
+_BACKEND_DIR = Path(__file__).resolve().parent.parent.parent
 
 
 class Settings(BaseSettings):
@@ -15,15 +19,15 @@ class Settings(BaseSettings):
     TEST_FILE_PREFIXES: list[str] = ["Test"]
     TEST_FILE_SUFFIXES: list[str] = ["Test.java", "Tests.java", "TestCase.java", "IT.java"]
 
-    ANTHROPIC_API_KEY: str = ""
-    ANTHROPIC_AUTH_TOKEN: str = ""
+    ANTHROPIC_API_KEY: str | None = None
+    ANTHROPIC_AUTH_TOKEN: str | None = None
     ANTHROPIC_BASE_URL: str = "https://api.anthropic.com"
     ANTHROPIC_MODEL: str = "astron-code-latest"
     MAX_TOKENS: int = 4096
 
     CORS_ORIGINS: list[str] = ["http://localhost:5173", "http://localhost:3000"]
 
-    model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
+    model_config = {"env_file": str(_BACKEND_DIR / ".env"), "env_file_encoding": "utf-8"}
 
 
 settings = Settings()

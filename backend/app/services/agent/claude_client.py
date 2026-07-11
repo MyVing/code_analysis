@@ -23,10 +23,12 @@ def _create_client() -> anthropic.AsyncAnthropic:
             auth_token=settings.ANTHROPIC_AUTH_TOKEN,
             base_url=settings.ANTHROPIC_BASE_URL,
         )
-    return anthropic.AsyncAnthropic(
-        api_key=settings.ANTHROPIC_API_KEY,
-        base_url=settings.ANTHROPIC_BASE_URL,
-    )
+    if settings.ANTHROPIC_API_KEY:
+        return anthropic.AsyncAnthropic(
+            api_key=settings.ANTHROPIC_API_KEY,
+            base_url=settings.ANTHROPIC_BASE_URL,
+        )
+    raise ValueError("ANTHROPIC_API_KEY or ANTHROPIC_AUTH_TOKEN must be set")
 
 
 async def run_agent_loop(

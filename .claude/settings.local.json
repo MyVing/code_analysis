@@ -82,7 +82,10 @@
       "Bash(.venv/Scripts/python.exe -c ' *)",
       "Bash(tasklist)",
       "Bash(wmic process *)",
-      "Bash(git remote *)"
+      "Bash(git remote *)",
+      "Bash(python -c \"from app.core.config import settings; print\\(f'API_KEY=|{settings.ANTHROPIC_API_KEY}|'\\); print\\(f'AUTH_TOKEN=|{settings.ANTHROPIC_AUTH_TOKEN}|'\\); print\\(f'BASE_URL=|{settings.ANTHROPIC_BASE_URL}|'\\)\")",
+      "Bash(./venv/Scripts/python -m app.main)",
+      "Bash(./backend/venv/Scripts/python -c ' *)"
     ]
   }
 }
