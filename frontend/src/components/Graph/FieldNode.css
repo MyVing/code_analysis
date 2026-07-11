@@ -1,0 +1,60 @@
+.fn-node {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  min-width: 100px;
+  cursor: default;
+  transition: box-shadow 0.15s;
+}
+
+.fn-node:hover {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.fn-selected {
+  box-shadow: 0 0 0 2px var(--color-primary) !important;
+}
+
+.fn-body {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+}
+
+.fn-badge {
+  width: 14px;
+  height: 14px;
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.fn-label {
+  font-size: 11px;
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+}
+
+.fn-type {
+  font-size: 10px;
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.fn-handle {
+  width: 5px;
+  height: 5px;
+  background: var(--color-border);
+  border: 2px solid var(--color-bg);
+}

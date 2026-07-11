@@ -1,0 +1,29 @@
+# Web Framework
+fastapi==0.139.0
+uvicorn[standard]==0.50.2
+
+# Database
+sqlalchemy[asyncio]==2.0.51
+aiosqlite==0.22.1
+
+# Validation & Settings
+pydantic>=2.11
+pydantic-settings>=2.10
+
+# Code Analysis
+tree-sitter==0.26.0
+tree-sitter-java==0.23.5
+
+# Git
+gitpython==3.1.50
+
+# AI
+anthropic==0.116.0
+
+# WebSocket
+websockets>=15.0
+
+# Dev
+pytest>=8.4
+pytest-asyncio>=0.24
+httpx>=0.28

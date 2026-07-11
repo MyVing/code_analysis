@@ -1,0 +1,42 @@
+.rp-container {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.rp-container-horizontal {
+  flex-direction: row;
+}
+
+.rp-container-vertical {
+  flex-direction: column;
+}
+
+.rp-panel {
+  overflow: auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+.rp-divider {
+  flex-shrink: 0;
+  background: var(--color-border);
+  transition: background 0.15s;
+  z-index: 1;
+}
+
+.rp-divider:hover,
+.rp-divider:active {
+  background: var(--color-primary);
+}
+
+.rp-divider-horizontal {
+  width: 4px;
+  cursor: col-resize;
+}
+
+.rp-divider-vertical {
+  height: 4px;
+  cursor: row-resize;
+}
