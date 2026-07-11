@@ -5,6 +5,45 @@ import { useChatStore } from '@/store/chatStore';
 import type { ChatMessage } from '@/types';
 import './ChatPage.css';
 
+const QUICK_ACTIONS = [
+  {
+    icon: '🔗',
+    title: '链路分析',
+    description: '追踪方法的完整调用链路',
+    prompt: '分析 [类名] 的完整调用链路',
+  },
+  {
+    icon: '🔍',
+    title: '调用者查找',
+    description: '查找谁调用了指定方法',
+    prompt: '谁调用了 [方法名]？',
+  },
+  {
+    icon: '📞',
+    title: '被调用者查找',
+    description: '查找指定类调用了哪些方法',
+    prompt: '[类名] 调用了哪些方法？',
+  },
+  {
+    icon: '🏗️',
+    title: '类结构分析',
+    description: '列出类的所有方法和签名',
+    prompt: '分析 [类名] 的结构，列出所有方法',
+  },
+  {
+    icon: '🔎',
+    title: '代码搜索',
+    description: '搜索代码中包含关键词的位置',
+    prompt: '搜索代码中包含 [关键词] 的位置',
+  },
+  {
+    icon: '📄',
+    title: '代码阅读',
+    description: '读取指定文件的源码',
+    prompt: '读取 [文件路径] 的源码',
+  },
+];
+
 export default function ChatPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -57,6 +96,10 @@ export default function ChatPage() {
     }
   };
 
+  const handleQuickAction = (prompt: string) => {
+    setInput(prompt);
+  };
+
   return (
     <div className="chat-page">
       <div className="chat-header">
@@ -69,8 +112,20 @@ export default function ChatPage() {
       <div className="chat-messages">
         {messages.length === 0 ? (
           <div className="chat-empty">
-            <p>Ask questions about your codebase.</p>
-            <p className="chat-hint">e.g. "Who calls UserService?" or "Explain the authentication flow"</p>
+            <p className="chat-empty-title">选择一个功能开始分析</p>
+            <div className="quick-actions">
+              {QUICK_ACTIONS.map((action) => (
+                <button
+                  key={action.title}
+                  className="quick-action-card"
+                  onClick={() => handleQuickAction(action.prompt)}
+                >
+                  <span className="quick-action-icon">{action.icon}</span>
+                  <span className="quick-action-title">{action.title}</span>
+                  <span className="quick-action-desc">{action.description}</span>
+                </button>
+              ))}
+            </div>
           </div>
         ) : (
           messages.map((msg) => (
