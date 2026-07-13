@@ -1,8 +1,11 @@
-import { useState, useRef, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router';
+import { useState, useRef, useEffect } from 'react';import { useSearchParams, useNavigate } from 'react-router';
 import { useProjectStore } from '@/store/projectStore';
 import { useChatStore } from '@/store/chatStore';
 import type { ChatMessage } from '@/types';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeHighlight from 'rehype-highlight';
+import 'highlight.js/styles/github-dark.css';
 import './ChatPage.css';
 
 const QUICK_ACTIONS = [
@@ -157,28 +160,24 @@ export default function ChatPage() {
 }
 
 function ChatBubble({ msg }: { msg: ChatMessage }) {
-  if (msg.role === 'tool_call') {
+  if (msg.role === 'thinking') {
     return (
-      <div className="chat-tool-call">
-        <span className="tool-icon">🔧</span>
-        <span className="tool-name">{msg.toolName}</span>
-        {msg.toolArgs && (
-          <code className="tool-args">{JSON.stringify(msg.toolArgs)}</code>
+      <div className="chat-thinking">
+        <div className="thinking-spinner" />
+        <span className="thinking-text">{msg.content}</span>
+        {msg.toolSteps && msg.toolSteps.length > 0 && (
+          <div className="thinking-steps">
+            {msg.toolSteps.map((step, i) => {
+              const args = step.args;
+              const label = args?.name || args?.symbol_name || args?.class_name || args?.file_path || args?.query || step.tool;
+              return (
+                <span key={i} className="thinking-step-tag" title={JSON.stringify(step.args, null, 2)}>
+                  {step.tool}: {typeof label === 'string' && label.length > 20 ? label.slice(0, 20) + '...' : label}
+                </span>
+              );
+            })}
+          </div>
         )}
-      </div>
-    );
-  }
-
-  if (msg.role === 'tool_result') {
-    return (
-      <div className="chat-tool-result">
-        <details>
-          <summary>
-            <span className="tool-icon">📋</span>
-            Result from {msg.toolName}
-          </summary>
-          <pre className="tool-result-content">{msg.content}</pre>
-        </details>
       </div>
     );
   }
@@ -186,7 +185,17 @@ function ChatBubble({ msg }: { msg: ChatMessage }) {
   return (
     <div className={`chat-bubble chat-${msg.role}`}>
       <div className="bubble-content">
-        {msg.content}
+        {msg.role === 'assistant' ? (
+          msg.isStreaming ? (
+            <pre className="streaming-raw">{msg.content}</pre>
+          ) : (
+            <ReactMarkdown key="final" remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
+              {msg.content}
+            </ReactMarkdown>
+          )
+        ) : (
+          msg.content
+        )}
         {msg.isStreaming && <span className="cursor-blink">▊</span>}
       </div>
     </div>

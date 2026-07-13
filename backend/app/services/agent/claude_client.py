@@ -54,7 +54,8 @@ async def run_agent_loop(
     client = _create_client()
 
     max_iterations = 10
-    for _ in range(max_iterations):
+    yielded_report_start = False
+    for iteration in range(max_iterations):
         session_manager.trim_history(session_id, max_messages=40)
         messages = session_manager.get_messages(session_id)
 
@@ -63,6 +64,7 @@ async def run_agent_loop(
         try:
             text_content = ""
             tool_calls = []
+            is_final_response = False
 
             async with client.messages.stream(
                 model=settings.ANTHROPIC_MODEL,
@@ -79,10 +81,19 @@ async def run_agent_loop(
                                 "name": event.content_block.name,
                                 "input": {},
                             })
+                        elif event.content_block.type == "text":
+                            # First text block with no prior tool_use = final response
+                            if not tool_calls:
+                                is_final_response = True
                     elif event.type == "content_block_delta":
                         if event.delta.type == "text_delta":
                             text_content += event.delta.text
-                            yield {"event": "text", "data": {"content": event.delta.text}}
+                            # Stream text in real-time during the final response
+                            if is_final_response:
+                                if not yielded_report_start:
+                                    yield {"event": "report_start", "data": {}}
+                                    yielded_report_start = True
+                                yield {"event": "text", "data": {"content": event.delta.text}}
                         elif event.delta.type == "input_json_delta":
                             if tool_calls:
                                 partial = getattr(event.delta, "partial_json", "")
@@ -95,12 +106,17 @@ async def run_agent_loop(
                                 tool_calls[-1]["input"] = json.loads(tool_calls[-1].pop("_raw_input"))
                             except json.JSONDecodeError:
                                 tool_calls[-1]["input"] = {}
+                        # If a tool_use block appears after text, this wasn't the final response
+                        if tool_calls:
+                            is_final_response = False
 
             # Process tool calls
             if tool_calls:
+                logger.info(f"Agent iteration {iteration}: {len(tool_calls)} tool calls, text_content length={len(text_content)}")
                 assistant_content = []
-                if text_content:
-                    assistant_content.append({"type": "text", "text": text_content})
+                # Do NOT include intermediate text in session history —
+                # this prevents AI from thinking it already answered,
+                # and forces it to output a complete report in the final iteration
                 for tc in tool_calls:
                     assistant_content.append({
                         "type": "tool_use",
@@ -128,10 +144,30 @@ async def run_agent_loop(
                 session_manager.add_message(session_id, {"role": "user", "content": tool_results})
                 continue
             else:
+                # Final response
+                logger.info(f"Agent final response: text_content length={len(text_content)}, preview={text_content[:200]!r}")
                 if text_content:
                     session_manager.add_message(session_id, {"role": "assistant", "content": text_content})
-                yield {"event": "done", "data": {"session_id": session_id}}
-                return
+                    if not yielded_report_start:
+                        # Text was accumulated but not streamed (edge case), send now in chunks
+                        yield {"event": "report_start", "data": {}}
+                        chunk_size = 50
+                        for i in range(0, len(text_content), chunk_size):
+                            yield {"event": "text", "data": {"content": text_content[i:i + chunk_size]}}
+                    yield {"event": "done", "data": {"session_id": session_id}}
+                    return
+                else:
+                    # AI returned empty text with no tool calls — give it another chance
+                    # with an explicit prompt to generate the report
+                    session_manager.add_message(session_id, {
+                        "role": "assistant",
+                        "content": [{"type": "text", "text": "好的，我已收集到所需信息。"}],
+                    })
+                    session_manager.add_message(session_id, {
+                        "role": "user",
+                        "content": "请根据以上工具调用收集到的信息，直接输出完整的结构化分析报告。不要叙述分析过程，直接给出报告内容。",
+                    })
+                    continue
 
         except anthropic.APIError as e:
             logger.error(f"Claude API error: {e}")
@@ -142,7 +178,35 @@ async def run_agent_loop(
             yield {"event": "error", "data": {"message": str(e)}}
             return
 
-    yield {"event": "done", "data": {"session_id": session_id, "reason": "max_iterations"}}
+    # Max iterations reached — force AI to output a report with what it has
+    logger.warning(f"Agent reached max_iterations={max_iterations}, forcing final report")
+    session_manager.add_message(session_id, {
+        "role": "user",
+        "content": "你已达到最大工具调用次数限制。请立即根据已收集到的信息输出分析报告，不要再调用任何工具。如果某些信息缺失，在报告中说明即可。",
+    })
+
+    try:
+        text_content = ""
+        async with client.messages.stream(
+            model=settings.ANTHROPIC_MODEL,
+            max_tokens=settings.MAX_TOKENS,
+            system=system_prompt,
+            messages=session_manager.get_messages(session_id),
+        ) as stream:
+            async for event in stream:
+                if event.type == "content_block_delta" and event.delta.type == "text_delta":
+                    text_content += event.delta.text
+                    if not yielded_report_start:
+                        yield {"event": "report_start", "data": {}}
+                        yielded_report_start = True
+                    yield {"event": "text", "data": {"content": event.delta.text}}
+
+        if text_content:
+            session_manager.add_message(session_id, {"role": "assistant", "content": text_content})
+        yield {"event": "done", "data": {"session_id": session_id}}
+    except Exception as e:
+        logger.exception("Agent forced report error")
+        yield {"event": "error", "data": {"message": str(e)}}
 
 
 async def _execute_tool(project_id: uuid.UUID, tool_name: str, args: dict) -> dict:

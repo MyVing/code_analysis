@@ -118,10 +118,11 @@ export interface GraphEdgeApi {
 
 export interface ChatMessage {
   id: string;
-  role: 'user' | 'assistant' | 'tool_call' | 'tool_result';
+  role: 'user' | 'assistant' | 'tool_call' | 'tool_result' | 'thinking';
   content: string;
   timestamp: number;
   toolName?: string;
   toolArgs?: Record<string, any>;
   isStreaming?: boolean;
+  toolSteps?: { tool: string; args?: Record<string, any> }[];
 }

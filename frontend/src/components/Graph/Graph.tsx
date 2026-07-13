@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useCallback } from 'react';
+import { useEffect, useMemo, useRef, useCallback, useState } from 'react';
 import {
   ReactFlow,
   Controls,
@@ -18,7 +18,7 @@ import ClassNode from './ClassNode';
 import MethodNode from './MethodNode';
 import FieldNode from './FieldNode';
 import CallEdge from './CallEdge';
-import { layoutGraph } from './layout';
+import { layoutGraph, layoutIncremental } from './layout';
 import type { CustomNode, CustomEdge, CustomNodeData } from '@/types';
 import './Graph.css';
 
@@ -42,31 +42,80 @@ interface GraphProps {
 }
 
 function GraphInner({ nodes: rawNodes, edges: rawEdges, onNodeClick, onNodeDoubleClick, onEdgeClick, onPaneClick }: GraphProps) {
-  const layouted = useMemo(
-    () => layoutGraph(rawNodes, rawEdges),
-    [rawNodes, rawEdges],
-  );
+  // Track previous node IDs to detect additions vs. removals vs. repositions
+  const prevNodeIdsRef = useRef<Set<string>>(new Set());
+  const prevLayoutNodesRef = useRef<CustomNode[]>([]);
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(layouted.nodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(layouted.edges);
-  const { fitView } = useReactFlow();
-  const prevNodeCountRef = useRef(layouted.nodes.length);
+  const [layoutedNodes, setLayoutedNodes] = useState<CustomNode[]>([]);
+  const [layoutedEdges, setLayoutedEdges] = useState<CustomEdge[]>([]);
+
+  // Debounce timer ref for layout recalculation
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    setNodes(layouted.nodes);
-    setEdges(layouted.edges);
-  }, [layouted, setNodes, setEdges]);
+    const currentIds = new Set(rawNodes.map((n) => n.id));
+    const prevIds = prevNodeIdsRef.current;
+    const prevLayoutNodes = prevLayoutNodesRef.current;
+
+    // Determine what changed
+    const addedIds = new Set([...currentIds].filter((id) => !prevIds.has(id)));
+    const removedIds = new Set([...prevIds].filter((id) => !currentIds.has(id)));
+
+    const computeLayout = () => {
+      if (prevLayoutNodes.length === 0 || removedIds.size > 0) {
+        // Full layout: initial load or nodes were removed
+        const result = layoutGraph(rawNodes, rawEdges);
+        setLayoutedNodes(result.nodes as CustomNode[]);
+        setLayoutedEdges(result.edges as CustomEdge[]);
+        prevLayoutNodesRef.current = result.nodes as CustomNode[];
+      } else if (addedIds.size > 0) {
+        // Incremental layout: only position new nodes
+        const newNodes = rawNodes.filter((n) => addedIds.has(n.id));
+        const allEdges = rawEdges;
+        const resultNodes = layoutIncremental(prevLayoutNodes, newNodes, allEdges);
+        setLayoutedNodes(resultNodes as CustomNode[]);
+        setLayoutedEdges(allEdges as CustomEdge[]);
+        prevLayoutNodesRef.current = resultNodes as CustomNode[];
+      } else {
+        // No node count change (e.g. drag, data update) — skip layout entirely
+        setLayoutedNodes(rawNodes);
+        setLayoutedEdges(rawEdges);
+      }
+      prevNodeIdsRef.current = currentIds;
+    };
+
+    // Debounce: delay layout to coalesce rapid expand operations
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    debounceTimerRef.current = setTimeout(computeLayout, 50);
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [rawNodes, rawEdges]);
+
+  const [nodes, setNodes, onNodesChange] = useNodesState(layoutedNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(layoutedEdges);
+  const { fitView } = useReactFlow();
+  const prevNodeCountRef = useRef(layoutedNodes.length);
+
+  useEffect(() => {
+    setNodes(layoutedNodes);
+    setEdges(layoutedEdges);
+  }, [layoutedNodes, layoutedEdges, setNodes, setEdges]);
 
   // fitView when node count changes (focus switch, expand/collapse)
   useEffect(() => {
-    if (prevNodeCountRef.current !== layouted.nodes.length) {
-      prevNodeCountRef.current = layouted.nodes.length;
-      // Delay to let React Flow process the node changes first
+    if (prevNodeCountRef.current !== layoutedNodes.length) {
+      prevNodeCountRef.current = layoutedNodes.length;
       requestAnimationFrame(() => {
         fitView({ padding: 0.2, duration: 300 });
       });
     }
-  }, [layouted.nodes.length, fitView]);
+  }, [layoutedNodes.length, fitView]);
 
   const defaultEdgeOptions = useMemo(
     () => ({

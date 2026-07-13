@@ -1,7 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useProjectStore } from '@/store/projectStore';
-import type { Project } from '@/types';
+import type { Project, ProjectStatus } from '@/types';
 import './ProjectPage.css';
+
+const POLL_INTERVAL = 3000;
+const IN_PROGRESS_STATUSES: ProjectStatus[] = ['pending', 'cloning', 'parsing', 'indexing'];
 
 export default function ProjectPage() {
   const { projects, loading, fetchProjects, createProject, deleteProject, selectProject } = useProjectStore();
@@ -9,10 +12,32 @@ export default function ProjectPage() {
   const [name, setName] = useState('');
   const [gitUrl, setGitUrl] = useState('');
   const [branch, setBranch] = useState('main');
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     fetchProjects();
   }, [fetchProjects]);
+
+  // Poll while any project is in a non-terminal status
+  useEffect(() => {
+    const hasInProgress = projects.some((p) => IN_PROGRESS_STATUSES.includes(p.status));
+
+    if (hasInProgress && !pollingRef.current) {
+      pollingRef.current = setInterval(() => {
+        fetchProjects();
+      }, POLL_INTERVAL);
+    } else if (!hasInProgress && pollingRef.current) {
+      clearInterval(pollingRef.current);
+      pollingRef.current = null;
+    }
+
+    return () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+    };
+  }, [projects, fetchProjects]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
