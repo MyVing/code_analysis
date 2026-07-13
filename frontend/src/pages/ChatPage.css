@@ -202,10 +202,12 @@
 .chat-assistant .bubble-content pre code {
   display: block;
   padding: 12px;
-  background: #1a1b26;
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   font-size: 12px;
   line-height: 1.5;
+  color: var(--color-text);
 }
 
 .chat-assistant .bubble-content blockquote {
