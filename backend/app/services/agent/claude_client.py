@@ -53,7 +53,7 @@ async def run_agent_loop(
 
     client = _create_client()
 
-    max_iterations = 10
+    max_iterations = 25
     yielded_report_start = False
     for iteration in range(max_iterations):
         session_manager.trim_history(session_id, max_messages=40)

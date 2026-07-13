@@ -148,7 +148,6 @@ export const useChatStore = create<ChatStore>((set, get) => ({
                       ),
                     loading: false,
                   }));
-                  });
                 } else if (event === 'error') {
                   set((s) => ({
                     messages: s.messages
