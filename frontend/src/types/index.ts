@@ -49,17 +49,42 @@ export type NodeType = 'classNode' | 'methodNode' | 'fieldNode' | 'fileNode' | '
 
 export type EdgeType = 'call' | 'inherit' | 'import' | 'implement' | 'contains' | 'field_access';
 
-// Layer colors based on file path patterns
-export function getLayerColor(filePath: string, kind: SymbolKind): string {
+// Layer base hues based on file path patterns (HSL hue values)
+function getLayerHue(filePath: string): number | null {
   const lower = filePath.toLowerCase();
-  if (lower.includes('controller')) return '#3b82f6'; // blue
-  if (lower.includes('service')) return '#10b981';     // green
-  if (lower.includes('mapper') || lower.includes('dao') || lower.includes('repository')) return '#f59e0b'; // orange
-  if (lower.includes('dto') || lower.includes('entity') || lower.includes('model') || lower.includes('vo')) return '#8b5cf6'; // purple
-  if (lower.includes('config') || lower.includes('configuration')) return '#ec4899'; // pink
-  if (kind === 'class') return '#4f46e5';
-  if (kind === 'method' || kind === 'function') return '#0891b2';
-  if (kind === 'variable') return '#d97706';
+  if (lower.includes('controller')) return 220;       // blue
+  if (lower.includes('service')) return 160;           // green
+  if (lower.includes('mapper') || lower.includes('dao') || lower.includes('repository')) return 40; // orange
+  if (lower.includes('dto') || lower.includes('entity') || lower.includes('model') || lower.includes('vo')) return 270; // purple
+  if (lower.includes('config') || lower.includes('configuration')) return 330; // pink
+  return null;
+}
+
+// Color by combining layer (file path) + node kind for clear visual distinction
+export function getLayerColor(filePath: string, kind: SymbolKind): string {
+  const layerHue = getLayerHue(filePath);
+
+  if (layerHue !== null) {
+    // Same layer hue, but different saturation/lightness per kind
+    if (kind === 'class' || kind === 'interface' || kind === 'enum') {
+      return `hsl(${layerHue}, 65%, 42%)`;   // deep & saturated — class stands out
+    }
+    if (kind === 'method' || kind === 'function') {
+      return `hsl(${layerHue}, 50%, 55%)`;   // medium — method is lighter
+    }
+    if (kind === 'variable') {
+      return `hsl(${layerHue}, 35%, 65%)`;   // pale — field is subtle
+    }
+    if (kind === 'annotation') {
+      return `hsl(${layerHue}, 70%, 50%)`;
+    }
+    return `hsl(${layerHue}, 45%, 50%)`;
+  }
+
+  // No layer match — use kind-based defaults with distinct hues
+  if (kind === 'class' || kind === 'interface' || kind === 'enum') return '#4f46e5'; // indigo
+  if (kind === 'method' || kind === 'function') return '#0891b2';                    // cyan
+  if (kind === 'variable') return '#d97706';                                          // amber
   return '#6b7280';
 }
 

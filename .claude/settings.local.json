@@ -86,7 +86,11 @@
       "Bash(python -c \"from app.core.config import settings; print\\(f'API_KEY=|{settings.ANTHROPIC_API_KEY}|'\\); print\\(f'AUTH_TOKEN=|{settings.ANTHROPIC_AUTH_TOKEN}|'\\); print\\(f'BASE_URL=|{settings.ANTHROPIC_BASE_URL}|'\\)\")",
       "Bash(./venv/Scripts/python -m app.main)",
       "Bash(./backend/venv/Scripts/python -c ' *)",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "Bash(python -c \"from backend.app.api.v1.graph import router; print\\('Import OK'\\)\")",
+      "Bash(python -c \"from app.api.v1.graph import router; print\\('Import OK'\\)\")",
+      "Bash(python -c \"from app.services.graph_service import *; from app.services.chain_traversal import traverse_full_chain; print\\('All service imports OK'\\)\")",
+      "Bash(taskkill //PID 5556 //F)"
     ]
   }
 }
