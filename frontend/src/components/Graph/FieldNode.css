@@ -5,6 +5,7 @@
   min-width: 100px;
   cursor: default;
   transition: box-shadow 0.15s;
+  border-left-width: 3px;
 }
 
 .fn-node:hover {

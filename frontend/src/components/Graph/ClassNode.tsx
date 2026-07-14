@@ -6,12 +6,13 @@ import './ClassNode.css';
 export default function ClassNode({ data, selected }: NodeProps<CustomNodeData>) {
   const showExpand = data.hasOutgoingCalls && !data.isExpanded;
   const showExpanded = data.isExpanded;
+  const badge = data.kind === 'interface' ? 'I' : data.kind === 'enum' ? 'E' : 'C';
 
   return (
     <div className={`cn-node${selected ? ' cn-selected' : ''}`} style={{ borderColor: data.color }}>
       <Handle type="target" position={Position.Top} className="cn-handle" />
       <div className="cn-body">
-        <span className="cn-badge" style={{ background: data.color }}>C</span>
+        <span className="cn-badge" style={{ background: data.color }}>{badge}</span>
         <div className="cn-text">
           <span className="cn-label">{data.label}</span>
           {data.modifiers && <span className="cn-modifiers">{data.modifiers}</span>}

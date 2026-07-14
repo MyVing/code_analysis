@@ -6,12 +6,13 @@ import './MethodNode.css';
 export default function MethodNode({ data, selected }: NodeProps<CustomNodeData>) {
   const showExpand = data.hasOutgoingCalls && !data.isExpanded;
   const showExpanded = data.isExpanded;
+  const badge = data.kind === 'function' ? 'F' : 'M';
 
   return (
     <div className={`mn-node${selected ? ' mn-selected' : ''}`} style={{ borderColor: data.color }}>
       <Handle type="target" position={Position.Top} className="mn-handle" />
       <div className="mn-body">
-        <span className="mn-badge" style={{ background: data.color }}>M</span>
+        <span className="mn-badge" style={{ background: data.color }}>{badge}</span>
         <div className="mn-text">
           <span className="mn-label" title={data.signature || data.label}>{data.label}</span>
           {data.signature && <span className="mn-signature">{data.signature}</span>}

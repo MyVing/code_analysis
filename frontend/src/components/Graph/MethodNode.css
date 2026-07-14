@@ -5,6 +5,7 @@
   min-width: 120px;
   cursor: pointer;
   transition: box-shadow 0.15s;
+  border-left-width: 3px;
 }
 
 .mn-node:hover {

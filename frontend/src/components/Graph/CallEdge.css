@@ -23,10 +23,10 @@
 }
 
 .ce-contains {
-  stroke: var(--color-border);
+  stroke: #64748b;
   stroke-dasharray: 2 2;
-  stroke-width: 1;
-  opacity: 0.5;
+  stroke-width: 2;
+  opacity: 0.8;
 }
 
 .ce-field_access {

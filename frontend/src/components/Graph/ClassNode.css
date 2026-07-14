@@ -5,6 +5,7 @@
   min-width: 140px;
   cursor: pointer;
   transition: box-shadow 0.15s, border-color 0.15s;
+  border-left-width: 4px;
 }
 
 .cn-node:hover {

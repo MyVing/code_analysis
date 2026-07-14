@@ -16,7 +16,7 @@ export default function AnalysisPage() {
     nodes, edges, loading, expandedCallNodes, chainFileId, involvedFileIds,
     focusNodeId, focusStack,
     loadFileChain, expandCall, expandClassCalls, loadFullChain,
-    selectNode, collapseCallNode, selectedNode,
+    selectNode, selectedNode,
     focusOnNode, focusBack,
   } = useGraphStore();
   const navigate = useNavigate();
@@ -72,9 +72,13 @@ export default function AnalysisPage() {
       const isExpanded = expandedCallNodes.has(nodeId);
 
       if (isExpanded) {
-        collapseCallNode(nodeId);
+        // Already expanded — focus on this node's downstream subgraph instead of collapsing
+        focusOnNode(nodeId);
+      } else if (node.data.hasOutgoingCalls) {
+        // Has outgoing calls but not expanded — expand and focus
+        focusOnNode(nodeId);
       } else {
-        // Focus on this node's downstream subgraph
+        // Leaf node — just focus on it
         focusOnNode(nodeId);
       }
 
@@ -84,7 +88,7 @@ export default function AnalysisPage() {
         loadFileContent(fileId, node.data.kind, node.data.startLine, node.data.endLine);
       }
     },
-    [selectNode, collapseCallNode, expandedCallNodes, focusOnNode, currentProject, loadFileContent],
+    [selectNode, expandedCallNodes, focusOnNode, currentProject, loadFileContent],
   );
 
   const handleNodeDoubleClick = useCallback(
@@ -122,9 +126,10 @@ export default function AnalysisPage() {
 
   const handlePaneClick = useCallback(() => {
     selectNode(null);
-  }, [selectNode]);
+    focusBack();
+  }, [selectNode, focusBack]);
 
-  // Focus filtering: when focusNodeId is set, only show that node + downstream
+  // Focus filtering: when focusNodeId is set, show that node + downstream + upstream ancestors
   const { filteredNodes, filteredEdges } = useMemo(() => {
     if (!focusNodeId) {
       return { filteredNodes: nodes, filteredEdges: edges };
@@ -142,8 +147,21 @@ export default function AnalysisPage() {
         }
       }
     }
-    const fNodes = nodes.filter((n) => reachable.has(n.id));
-    const fEdges = edges.filter((e) => reachable.has(e.source) && reachable.has(e.target));
+    // BFS upstream: trace back from focusNodeId to include ancestor path
+    const upstream = new Set<string>();
+    const upstreamQueue = [focusNodeId];
+    while (upstreamQueue.length > 0) {
+      const current = upstreamQueue.pop()!;
+      for (const edge of edges) {
+        if (edge.target === current && !upstream.has(edge.source) && !reachable.has(edge.source)) {
+          upstream.add(edge.source);
+          upstreamQueue.push(edge.source);
+        }
+      }
+    }
+    const allReachable = new Set([...reachable, ...upstream]);
+    const fNodes = nodes.filter((n) => allReachable.has(n.id));
+    const fEdges = edges.filter((e) => allReachable.has(e.source) && allReachable.has(e.target));
     return { filteredNodes: fNodes, filteredEdges: fEdges };
   }, [focusNodeId, nodes, edges]);
 
@@ -241,6 +259,7 @@ export default function AnalysisPage() {
                       <Graph
                         nodes={filteredNodes}
                         edges={filteredEdges}
+                        focusNodeId={focusNodeId}
                         onNodeClick={handleNodeClick}
                         onNodeDoubleClick={handleNodeDoubleClick}
                         onPaneClick={handlePaneClick}

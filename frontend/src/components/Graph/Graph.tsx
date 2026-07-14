@@ -35,13 +35,14 @@ const EDGE_TYPES = {
 interface GraphProps {
   nodes: CustomNode[];
   edges: CustomEdge[];
+  focusNodeId?: string | null;
   onNodeClick?: OnNodeClick<CustomNode>;
   onNodeDoubleClick?: OnNodeClick<CustomNode>;
   onEdgeClick?: OnEdgeClick<CustomEdge>;
   onPaneClick?: () => void;
 }
 
-function GraphInner({ nodes: rawNodes, edges: rawEdges, onNodeClick, onNodeDoubleClick, onEdgeClick, onPaneClick }: GraphProps) {
+function GraphInner({ nodes: rawNodes, edges: rawEdges, focusNodeId, onNodeClick, onNodeDoubleClick, onEdgeClick, onPaneClick }: GraphProps) {
   // Track previous node IDs to detect additions vs. removals vs. repositions
   const prevNodeIdsRef = useRef<Set<string>>(new Set());
   const prevLayoutNodesRef = useRef<CustomNode[]>([]);
@@ -116,6 +117,15 @@ function GraphInner({ nodes: rawNodes, edges: rawEdges, onNodeClick, onNodeDoubl
       });
     }
   }, [layoutedNodes.length, fitView]);
+
+  // Focus on a specific node when focusNodeId changes
+  useEffect(() => {
+    if (focusNodeId) {
+      requestAnimationFrame(() => {
+        fitView({ nodes: [{ id: focusNodeId }], padding: 0.3, duration: 400 });
+      });
+    }
+  }, [focusNodeId, fitView]);
 
   const defaultEdgeOptions = useMemo(
     () => ({
