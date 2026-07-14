@@ -88,7 +88,10 @@ class GitManager:
         return sorted(java_files)
 
     async def read_file(self, project_name: str, file_path: str) -> str:
-        full_path = self._workspace_path(project_name) / file_path
+        workspace = self._workspace_path(project_name).resolve()
+        full_path = (workspace / file_path).resolve()
+        if not full_path.is_relative_to(workspace):
+            raise AnalysisError("Path traversal detected")
         if not full_path.exists():
             raise AnalysisError(f"File not found: {full_path}")
         return full_path.read_text(encoding="utf-8", errors="replace")

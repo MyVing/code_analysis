@@ -10,7 +10,7 @@ class ProjectCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     git_url: str = Field(..., min_length=1)
     language: str = "java"
-    branch: str = "main"
+    branch: str = "master"
     auto_analyze: bool = True
 
 

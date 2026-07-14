@@ -2,11 +2,13 @@ import { BrowserRouter, Routes, Route, NavLink } from 'react-router';
 import ProjectPage from '@/pages/ProjectPage';
 import AnalysisPage from '@/pages/AnalysisPage';
 import ChatPage from '@/pages/ChatPage';
+import ToastContainer from '@/components/Toast/Toast';
 import './App.css';
 
 function App() {
   return (
     <BrowserRouter>
+      <ToastContainer />
       <nav className="navbar">
         <div className="navbar-brand">Code Analysis</div>
         <div className="navbar-links">

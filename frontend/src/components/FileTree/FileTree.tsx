@@ -127,7 +127,7 @@ const FileTree = forwardRef<FileTreeRef, FileTreeProps>(
         }
         if (!symbols[fileId]) {
           try {
-            const syms = await api.getFileSymbols(fileId);
+            const syms = await api.getSymbolsByFile(fileId);
             setSymbols((prev) => ({ ...prev, [fileId]: syms }));
           } catch {
             return;

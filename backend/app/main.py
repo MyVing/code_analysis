@@ -8,6 +8,7 @@ from app.api.v1 import v1_router
 from app.core.config import settings
 from app.core.exceptions import register_exception_handlers
 from app.db.init_db import init_db
+from app.services.analysis_service import analysis_service
 
 # Import tools to register them
 import app.tools.graph_tools  # noqa: F401
@@ -20,6 +21,7 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     logger.info("Starting up — initializing database")
     await init_db()
+    await analysis_service.recover_stuck_projects()
     yield
     logger.info("Shutting down")
 

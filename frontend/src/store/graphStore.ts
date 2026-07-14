@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { CustomNode, CustomEdge, Symbol } from '@/types';
 import { getLayerColor } from '@/types';
 import { api } from '@/services/api';
+import { useToastStore } from '@/store/toastStore';
 
 function buildNode(n: any, overrides?: Partial<CustomNode['data']>): CustomNode {
   const isMethod = n.kind === 'method' || n.kind === 'function';
@@ -139,8 +140,9 @@ export const useGraphStore = create<GraphStore>((set, get) => ({
       );
 
       set({ nodes, edges, loading: false, expandedNodes: new Set(), expandedCallNodes: new Set(), chainFileId: null, involvedFileIds });
-    } catch {
+    } catch (e) {
       set({ loading: false });
+      useToastStore.getState().addToast('error', `加载图谱失败: ${(e as Error).message}`);
     }
   },
 
@@ -148,7 +150,7 @@ export const useGraphStore = create<GraphStore>((set, get) => ({
     set({ loading: true });
     try {
       // Step 1: Get file symbols (first layer)
-      const fileData = await api.getFileSymbols(projectId, fileId);
+      const fileData = await api.getGraphByFile(projectId, fileId);
       const initialNodes: CustomNode[] = fileData.nodes.map((n: any) => buildNode(n));
       const initialEdges: CustomEdge[] = fileData.edges.map((e: any) => buildEdge(e));
 
@@ -227,8 +229,9 @@ export const useGraphStore = create<GraphStore>((set, get) => ({
         selectedNode: null,
         involvedFileIds,
       });
-    } catch {
+    } catch (e) {
       set({ loading: false });
+      useToastStore.getState().addToast('error', `加载文件链路失败: ${(e as Error).message}`);
     }
   },
 
@@ -282,8 +285,8 @@ export const useGraphStore = create<GraphStore>((set, get) => ({
         expandedCallNodes: nextExpanded,
         involvedFileIds,
       });
-    } catch {
-      // silently fail
+    } catch (e) {
+      useToastStore.getState().addToast('error', `展开调用失败: ${(e as Error).message}`);
     }
   },
 
@@ -333,8 +336,8 @@ export const useGraphStore = create<GraphStore>((set, get) => ({
         expandedCallNodes: nextExpanded,
         involvedFileIds,
       });
-    } catch {
-      // silently fail
+    } catch (e) {
+      useToastStore.getState().addToast('error', `展开类调用失败: ${(e as Error).message}`);
     }
   },
 
@@ -369,8 +372,9 @@ export const useGraphStore = create<GraphStore>((set, get) => ({
         expandedNodes: new Set(),
         involvedFileIds,
       });
-    } catch {
+    } catch (e) {
       set({ loading: false });
+      useToastStore.getState().addToast('error', `加载完整链路失败: ${(e as Error).message}`);
     }
   },
 
@@ -411,8 +415,8 @@ export const useGraphStore = create<GraphStore>((set, get) => ({
         expandedNodes: nextExpanded,
         involvedFileIds,
       });
-    } catch {
-      // silently fail
+    } catch (e) {
+      useToastStore.getState().addToast('error', `展开节点失败: ${(e as Error).message}`);
     }
   },
 

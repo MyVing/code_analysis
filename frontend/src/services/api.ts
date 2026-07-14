@@ -34,7 +34,7 @@ export const api = {
     const query = qs.toString();
     return request<Symbol[]>(`/symbols/${query ? `?${query}` : ''}`);
   },
-  getFileSymbols: (fileId: string) => request<Symbol[]>(`/symbols/file/${fileId}`),
+  getSymbolsByFile: (fileId: string) => request<Symbol[]>(`/symbols/file/${fileId}`),
   getSymbolChildren: (symbolId: string) => request<Symbol[]>(`/symbols/${symbolId}/children`),
 
   // Graph
@@ -43,7 +43,7 @@ export const api = {
   getVisualization: (projectId: string) => request<GraphData>(`/graph/visualization/${projectId}`),
   expandSymbol: (projectId: string, symbolId: string) =>
     request<any>(`/graph/call-graph/${projectId}/expand/${symbolId}`),
-  getFileSymbols: (projectId: string, fileId: string) =>
+  getGraphByFile: (projectId: string, fileId: string) =>
     request<GraphData>(`/graph/file-symbols/${projectId}/${fileId}`),
   expandCall: (projectId: string, symbolId: string) =>
     request<any>(`/graph/expand-call/${projectId}/${symbolId}`),

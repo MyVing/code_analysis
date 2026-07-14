@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.file import File
-from app.models.project import Project, ProjectStatus
+from app.models.project import Project
 from app.models.symbol import Symbol, SymbolKind
 from app.services.analyzer.ast_visitor import CallInfo, FieldAccessInfo, ImportInfo, ImplementsInfo, SymbolInfo
 from app.services.analyzer.git_manager import GitManager
@@ -49,15 +49,9 @@ class SymbolTableBuilder:
     async def build(self, project: Project) -> IndexResult:
         result = IndexResult()
 
-        project.status = ProjectStatus.PARSING
-        await self.db.commit()
-
         git_mgr = GitManager(self.db)
         file_list = await git_mgr.get_file_list(project.name)
         workspace = git_mgr._workspace_path(project.name)
-
-        project.status = ProjectStatus.INDEXING
-        await self.db.commit()
 
         for rel_path in file_list:
             full_path = workspace / rel_path
