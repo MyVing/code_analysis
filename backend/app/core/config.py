@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     APP_NAME: str = "AI Code Analysis Platform"
     APP_VERSION: str = "0.1.0"
     DEBUG: bool = True
+    LOG_LEVEL: str = "INFO"
 
     DATABASE_URL: str = "sqlite+aiosqlite:///./code_analysis.db"
     WORKSPACE_DIR: str = "workspace"
@@ -24,6 +25,12 @@ class Settings(BaseSettings):
     ANTHROPIC_BASE_URL: str = "https://api.anthropic.com"
     ANTHROPIC_MODEL: str = "astron-code-latest"
     MAX_TOKENS: int = 4096
+
+    # MaaS 模型路由配置
+    MAAS_API_KEY: str | None = None
+    MAAS_BASE_URL: str = "https://maas-coding-api.cn-huabei-1.xf-yun.com"
+    MODEL_ROUTER_STRATEGY: str = "round_robin"  # round_robin | random
+    MODEL_POOL: str = "xsparkx2,auto,xopdeepseekv32,xopglm51,xopqwen36v35b,xopglmv47flash"
 
     CORS_ORIGINS: list[str] = ["http://localhost:5173", "http://localhost:3000"]
 

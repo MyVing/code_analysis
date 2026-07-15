@@ -3,32 +3,47 @@ import logging
 import uuid
 from typing import AsyncGenerator
 
-import anthropic
-
 from app.core.config import settings
 from app.db.session import async_session
+from app.services.agent.llm_client import LLMClient, StreamEvent
+from app.services.agent.model_router import ModelConfig, ModelRouter
 from app.services.agent.prompt_manager import PromptManager
 from app.services.agent.session_manager import SessionManager
-from app.tools.base import get_tool_definitions, get_tool_function
+from app.tools.base import get_tool_definitions
 
 logger = logging.getLogger(__name__)
 
 prompt_manager = PromptManager()
 session_manager = SessionManager()
 
+# Initialize model router from config
+_model_pool = [m.strip() for m in settings.MODEL_POOL.split(",") if m.strip()]
+model_router = ModelRouter(
+    pool=_model_pool,
+    strategy=settings.MODEL_ROUTER_STRATEGY,
+    base_url=settings.MAAS_BASE_URL,
+)
 
-def _create_client() -> anthropic.AsyncAnthropic:
-    if settings.ANTHROPIC_AUTH_TOKEN:
-        return anthropic.AsyncAnthropic(
-            auth_token=settings.ANTHROPIC_AUTH_TOKEN,
-            base_url=settings.ANTHROPIC_BASE_URL,
-        )
-    if settings.ANTHROPIC_API_KEY:
-        return anthropic.AsyncAnthropic(
-            api_key=settings.ANTHROPIC_API_KEY,
-            base_url=settings.ANTHROPIC_BASE_URL,
-        )
-    raise ValueError("ANTHROPIC_API_KEY or ANTHROPIC_AUTH_TOKEN must be set")
+# Initialize unified LLM client
+_api_key = settings.MAAS_API_KEY or settings.ANTHROPIC_API_KEY or settings.ANTHROPIC_AUTH_TOKEN or ""
+llm_client = LLMClient(api_key=_api_key)
+
+
+def _get_or_create_session(project_id: uuid.UUID, session_id: str | None) -> tuple[str, ModelConfig]:
+    """Get existing session or create new one with a model from the router."""
+    if session_id:
+        existing_model = session_manager.get_model(session_id)
+        if existing_model:
+            return session_id, existing_model
+        # Session exists but no model (legacy) — assign one
+        model_config = model_router.select_model()
+        session_manager._session_model[session_id] = model_config
+        return session_id, model_config
+
+    # New session
+    model_config = model_router.select_model()
+    session_id = session_manager.create_session(project_id, model_config)
+    return session_id, model_config
 
 
 async def run_agent_loop(
@@ -38,8 +53,8 @@ async def run_agent_loop(
 ) -> AsyncGenerator[dict, None]:
     """Run the Agentic Loop and yield SSE events."""
 
-    if not session_id:
-        session_id = session_manager.create_session(project_id)
+    session_id, model_config = _get_or_create_session(project_id, session_id)
+    logger.info(f"Session {session_id[:8]} using model={model_config.model_id}")
 
     # Build system prompt
     async with async_session() as db:
@@ -51,72 +66,84 @@ async def run_agent_loop(
     # Get tool definitions
     tools = get_tool_definitions()
 
-    client = _create_client()
-
     max_iterations = 25
     yielded_report_start = False
+    failed_models: set[str] = set()  # track models that have failed
+
     for iteration in range(max_iterations):
         session_manager.trim_history(session_id, max_messages=40)
         messages = session_manager.get_messages(session_id)
 
         yield {"event": "thinking", "data": {}}
 
+        # If current model has failed, switch to another one
+        if model_config.model_id in failed_models:
+            new_config = model_router.select_model(exclude=failed_models)
+            if new_config and new_config.model_id != model_config.model_id:
+                logger.info(f"Switching model from {model_config.model_id} to {new_config.model_id}")
+                model_config = new_config
+                session_manager._session_model[session_id] = model_config
+
         try:
             text_content = ""
             tool_calls = []
             is_final_response = False
 
-            async with client.messages.stream(
-                model=settings.ANTHROPIC_MODEL,
-                max_tokens=settings.MAX_TOKENS,
-                system=system_prompt,
+            async for event in llm_client.stream_with_tools(
+                model=model_config,
+                system_prompt=system_prompt,
                 messages=messages,
                 tools=tools,
-            ) as stream:
-                async for event in stream:
-                    if event.type == "content_block_start":
-                        if event.content_block.type == "tool_use":
-                            tool_calls.append({
-                                "id": event.content_block.id,
-                                "name": event.content_block.name,
-                                "input": {},
-                            })
-                        elif event.content_block.type == "text":
-                            # First text block with no prior tool_use = final response
-                            if not tool_calls:
-                                is_final_response = True
-                    elif event.type == "content_block_delta":
-                        if event.delta.type == "text_delta":
-                            text_content += event.delta.text
-                            # Stream text in real-time during the final response
-                            if is_final_response:
-                                if not yielded_report_start:
-                                    yield {"event": "report_start", "data": {}}
-                                    yielded_report_start = True
-                                yield {"event": "text", "data": {"content": event.delta.text}}
-                        elif event.delta.type == "input_json_delta":
-                            if tool_calls:
-                                partial = getattr(event.delta, "partial_json", "")
-                                if partial:
-                                    tool_calls[-1].setdefault("_raw_input", "")
-                                    tool_calls[-1]["_raw_input"] += partial
-                    elif event.type == "content_block_stop":
-                        if tool_calls and "_raw_input" in tool_calls[-1]:
+                max_tokens=settings.MAX_TOKENS,
+            ):
+                if event.type == "text_delta":
+                    text_content += event.data["content"]
+                    if is_final_response:
+                        if not yielded_report_start:
+                            yield {"event": "report_start", "data": {}}
+                            yielded_report_start = True
+                        yield {"event": "text", "data": {"content": event.data["content"]}}
+
+                elif event.type == "tool_use_start":
+                    tool_calls.append({
+                        "id": event.data["id"],
+                        "name": event.data["name"],
+                        "input": {},
+                        "_raw_input": "",
+                    })
+                    is_final_response = False
+
+                elif event.type == "tool_use_delta":
+                    if tool_calls:
+                        partial = event.data.get("partial_json", "")
+                        if partial:
+                            tool_calls[-1]["_raw_input"] += partial
+
+                elif event.type == "tool_use_end":
+                    tc = tool_calls[-1] if tool_calls else None
+                    if tc:
+                        # OpenAI protocol sends full input_json at end
+                        input_json = event.data.get("input_json")
+                        if input_json:
                             try:
-                                tool_calls[-1]["input"] = json.loads(tool_calls[-1].pop("_raw_input"))
+                                tc["input"] = json.loads(input_json)
                             except json.JSONDecodeError:
-                                tool_calls[-1]["input"] = {}
-                        # If a tool_use block appears after text, this wasn't the final response
-                        if tool_calls:
-                            is_final_response = False
+                                tc["input"] = {}
+                        elif "_raw_input" in tc:
+                            try:
+                                tc["input"] = json.loads(tc.pop("_raw_input"))
+                            except json.JSONDecodeError:
+                                tc["input"] = {}
+
+                elif event.type == "message_end":
+                    # Determine if this was a final response (text only, no tool calls)
+                    if not tool_calls:
+                        is_final_response = True
 
             # Process tool calls
             if tool_calls:
                 logger.info(f"Agent iteration {iteration}: {len(tool_calls)} tool calls, text_content length={len(text_content)}")
                 assistant_content = []
-                # Do NOT include intermediate text in session history —
-                # this prevents AI from thinking it already answered,
-                # and forces it to output a complete report in the final iteration
                 for tc in tool_calls:
                     assistant_content.append({
                         "type": "tool_use",
@@ -149,7 +176,6 @@ async def run_agent_loop(
                 if text_content:
                     session_manager.add_message(session_id, {"role": "assistant", "content": text_content})
                     if not yielded_report_start:
-                        # Text was accumulated but not streamed (edge case), send now in chunks
                         yield {"event": "report_start", "data": {}}
                         chunk_size = 50
                         for i in range(0, len(text_content), chunk_size):
@@ -157,8 +183,6 @@ async def run_agent_loop(
                     yield {"event": "done", "data": {"session_id": session_id}}
                     return
                 else:
-                    # AI returned empty text with no tool calls — give it another chance
-                    # with an explicit prompt to generate the report
                     session_manager.add_message(session_id, {
                         "role": "assistant",
                         "content": [{"type": "text", "text": "好的，我已收集到所需信息。"}],
@@ -169,16 +193,19 @@ async def run_agent_loop(
                     })
                     continue
 
-        except anthropic.APIError as e:
-            logger.error(f"Claude API error: {e}")
-            yield {"event": "error", "data": {"message": f"AI service error: {e.message}"}}
-            return
         except Exception as e:
+            error_msg = str(e)
+            is_retryable = any(keyword in error_msg for keyword in ["503", "502", "429", "timeout", "Timeout", "engine timeout"])
+            if is_retryable and len(failed_models) < len(_model_pool) - 1:
+                logger.warning(f"Model {model_config.model_id} failed, marking for failover: {error_msg}")
+                failed_models.add(model_config.model_id)
+                yield {"event": "thinking", "data": {}}
+                continue  # retry next iteration with a different model
             logger.exception("Agent loop error")
             yield {"event": "error", "data": {"message": str(e)}}
             return
 
-    # Max iterations reached — force AI to output a report with what it has
+    # Max iterations reached
     logger.warning(f"Agent reached max_iterations={max_iterations}, forcing final report")
     session_manager.add_message(session_id, {
         "role": "user",
@@ -187,19 +214,19 @@ async def run_agent_loop(
 
     try:
         text_content = ""
-        async with client.messages.stream(
-            model=settings.ANTHROPIC_MODEL,
-            max_tokens=settings.MAX_TOKENS,
-            system=system_prompt,
+        async for event in llm_client.stream_with_tools(
+            model=model_config,
+            system_prompt=system_prompt,
             messages=session_manager.get_messages(session_id),
-        ) as stream:
-            async for event in stream:
-                if event.type == "content_block_delta" and event.delta.type == "text_delta":
-                    text_content += event.delta.text
-                    if not yielded_report_start:
-                        yield {"event": "report_start", "data": {}}
-                        yielded_report_start = True
-                    yield {"event": "text", "data": {"content": event.delta.text}}
+            tools=tools,
+            max_tokens=settings.MAX_TOKENS,
+        ):
+            if event.type == "text_delta":
+                text_content += event.data["content"]
+                if not yielded_report_start:
+                    yield {"event": "report_start", "data": {}}
+                    yielded_report_start = True
+                yield {"event": "text", "data": {"content": event.data["content"]}}
 
         if text_content:
             session_manager.add_message(session_id, {"role": "assistant", "content": text_content})
@@ -211,6 +238,8 @@ async def run_agent_loop(
 
 async def _execute_tool(project_id: uuid.UUID, tool_name: str, args: dict) -> dict:
     """Execute a tool function and return the result."""
+    from app.tools.base import get_tool_function
+
     func = get_tool_function(tool_name)
     if not func:
         return {"error": f"Unknown tool: {tool_name}"}

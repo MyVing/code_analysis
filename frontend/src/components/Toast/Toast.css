@@ -1,0 +1,57 @@
+.toast-container {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  font-size: 14px;
+  color: #fff;
+  pointer-events: auto;
+  cursor: pointer;
+  animation: toast-in 0.25s ease-out;
+  max-width: 400px;
+}
+
+.toast-error {
+  background: var(--color-error);
+}
+
+.toast-success {
+  background: var(--color-success);
+}
+
+.toast-warning {
+  background: var(--color-warning);
+}
+
+.toast-icon {
+  flex-shrink: 0;
+  font-weight: 700;
+}
+
+.toast-message {
+  line-height: 1.4;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

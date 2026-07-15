@@ -23,12 +23,15 @@ def tool(name: str, description: str, input_schema: dict[str, Any]):
 
 
 def get_tool_definitions() -> list[dict[str, Any]]:
-    """Return tool definitions in Anthropic API format."""
+    """Return tool definitions in OpenAI API format."""
     return [
         {
-            "name": td.name,
-            "description": td.description,
-            "input_schema": td.input_schema,
+            "type": "function",
+            "function": {
+                "name": td.name,
+                "description": td.description,
+                "parameters": td.input_schema,
+            },
         }
         for td, _ in _TOOL_REGISTRY.values()
     ]

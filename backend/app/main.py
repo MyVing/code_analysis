@@ -4,11 +4,14 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.v1 import v1_router
+from app.api import api_router
 from app.core.config import settings
 from app.core.exceptions import register_exception_handlers
+from app.core.logging import setup_logging
 from app.db.init_db import init_db
 from app.services.analysis_service import analysis_service
+
+setup_logging()
 
 # Import tools to register them
 import app.tools.graph_tools  # noqa: F401
@@ -41,12 +44,7 @@ app.add_middleware(
 )
 
 register_exception_handlers(app)
-app.include_router(v1_router)
-
-
-@app.get("/health")
-async def health_check():
-    return {"status": "ok", "version": settings.APP_VERSION}
+app.include_router(api_router)
 
 
 if __name__ == "__main__":
