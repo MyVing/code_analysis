@@ -9,7 +9,7 @@ interface ChatStore {
   loading: boolean;
 
   setProject: (projectId: string) => void;
-  sendMessage: (content: string) => Promise<void>;
+  sendMessage: (content: string, templateId?: string, templateParams?: Record<string, string>, outputSchema?: Record<string, any>) => Promise<void>;
   clear: () => void;
   addMessage: (msg: ChatMessage) => void;
 }
@@ -27,7 +27,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     }
   },
 
-  sendMessage: async (content) => {
+  sendMessage: async (content, templateId?, templateParams?, outputSchema?) => {
     const { projectId, sessionId } = get();
     if (!projectId || !content.trim()) return;
 
@@ -58,7 +58,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     set((s) => ({ messages: [...s.messages, assistantMsg, thinkingMsg] }));
 
     try {
-      const res = await api.chatStream(projectId, content, sessionId || undefined);
+      const res = await api.chatStream(projectId, content, sessionId || undefined, templateId, templateParams, outputSchema);
       if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: res.statusText }));
         throw new Error(err.detail || `HTTP ${res.status}`);
@@ -118,6 +118,22 @@ export const useChatStore = create<ChatStore>((set, get) => ({
                   }));
                 } else if (event === 'tool_result') {
                   // Tool result is absorbed into thinking, no separate message
+                } else if (event === 'structured_result') {
+                  // AI returned structured JSON result
+                  set((s) => ({
+                    messages: s.messages
+                      .filter((m) => m.id !== thinkingId)
+                      .map((m) =>
+                        m.id === assistantId
+                          ? {
+                              ...m,
+                              isStreaming: false,
+                              structuredData: data.result,
+                              outputSchema: data.schema,
+                            }
+                          : m,
+                      ),
+                  }));
                 } else if (event === 'report_start') {
                   // AI is about to stream the final report
                   // Clear thinking message only; assistant content stays as-is (empty initially)
