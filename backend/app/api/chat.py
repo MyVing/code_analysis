@@ -26,8 +26,21 @@ async def chat(
     if project.status != ProjectStatus.READY:
         raise ProjectNotReadyError(f"Project status is {project.status.value}, must be ready")
 
+    # Load output_schema: request body > template
+    output_schema = body.output_schema
+    if not output_schema and body.template_id:
+        from app.models.prompt_template import PromptTemplate
+        template = await db.get(PromptTemplate, uuid.UUID(body.template_id))
+        if template and template.output_schema:
+            output_schema = json.loads(template.output_schema)
+
     async def event_generator():
-        async for event in run_agent_loop(project_id, body.message, body.session_id):
+        async for event in run_agent_loop(
+            project_id,
+            body.message,
+            body.session_id,
+            output_schema=output_schema,
+        ):
             yield f"event: {event['event']}\ndata: {json.dumps(event['data'], ensure_ascii=False)}\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")

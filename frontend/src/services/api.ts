@@ -14,7 +14,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   return res.json();
 }
 
-import type { Project, Symbol, CallGraphEdge, GraphData, ImportRecord } from '@/types';
+import type { Project, Symbol, CallGraphEdge, GraphData, ImportRecord, PromptTemplate } from '@/types';
 
 export const api = {
   // Projects
@@ -56,15 +56,30 @@ export const api = {
   getFileContent: (fileId: string) => request<{ id: string; file_path: string; language: string; content: string }>(`/files/${fileId}/content`),
 
   // Chat
-  chatStream: (projectId: string, message: string, sessionId?: string) => {
+  chatStream: (projectId: string, message: string, sessionId?: string, templateId?: string, templateParams?: Record<string, string>, outputSchema?: Record<string, any>) => {
     const body: any = { message };
     if (sessionId) body.session_id = sessionId;
+    if (templateId) body.template_id = templateId;
+    if (templateParams) body.template_params = templateParams;
+    if (outputSchema) body.output_schema = outputSchema;
     return fetch(`${API_BASE}/chat/${projectId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
   },
+
+  // Prompt Templates
+  listPromptTemplates: () => request<PromptTemplate[]>('/prompt-templates/'),
+  listAllPromptTemplates: () => request<PromptTemplate[]>('/prompt-templates/all'),
+  createPromptTemplate: (data: Partial<PromptTemplate> & { name: string; prompt_template: string }) =>
+    request<PromptTemplate>('/prompt-templates/', { method: 'POST', body: JSON.stringify(data) }),
+  updatePromptTemplate: (id: string, data: Partial<PromptTemplate>) =>
+    request<PromptTemplate>(`/prompt-templates/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deletePromptTemplate: (id: string) =>
+    request<void>(`/prompt-templates/${id}`, { method: 'DELETE' }),
+  executePromptTemplate: (id: string, params: Record<string, string>) =>
+    request<{ prompt: string }>(`/prompt-templates/${id}/execute`, { method: 'POST', body: JSON.stringify({ params }) }),
 
   // Health
   healthCheck: () => request<{ status: string; version: string }>('/health'),

@@ -17,6 +17,11 @@ class ProjectNotFoundError(AppException):
     detail = "Project not found"
 
 
+class TemplateNotFoundError(AppException):
+    status_code = 404
+    detail = "Template not found"
+
+
 class SymbolNotFoundError(AppException):
     status_code = 404
     detail = "Symbol not found"

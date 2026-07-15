@@ -50,6 +50,7 @@ async def run_agent_loop(
     project_id: uuid.UUID,
     user_message: str,
     session_id: str | None = None,
+    output_schema: dict | None = None,
 ) -> AsyncGenerator[dict, None]:
     """Run the Agentic Loop and yield SSE events."""
 
@@ -58,7 +59,10 @@ async def run_agent_loop(
 
     # Build system prompt
     async with async_session() as db:
-        system_prompt = await prompt_manager.build_system_prompt(db, project_id)
+        if output_schema:
+            system_prompt = await prompt_manager.build_structured_system_prompt(db, project_id, output_schema)
+        else:
+            system_prompt = await prompt_manager.build_system_prompt(db, project_id)
 
     # Add user message to session
     session_manager.add_message(session_id, {"role": "user", "content": user_message})
@@ -175,11 +179,19 @@ async def run_agent_loop(
                 logger.info(f"Agent final response: text_content length={len(text_content)}, preview={text_content[:200]!r}")
                 if text_content:
                     session_manager.add_message(session_id, {"role": "assistant", "content": text_content})
-                    if not yielded_report_start:
-                        yield {"event": "report_start", "data": {}}
-                        chunk_size = 50
-                        for i in range(0, len(text_content), chunk_size):
-                            yield {"event": "text", "data": {"content": text_content[i:i + chunk_size]}}
+
+                    # Try to extract structured JSON if output_schema is set
+                    structured_data = _extract_json(text_content) if output_schema else None
+
+                    if structured_data and output_schema:
+                        yield {"event": "structured_result", "data": {"result": structured_data, "schema": output_schema}}
+                    else:
+                        if not yielded_report_start:
+                            yield {"event": "report_start", "data": {}}
+                            chunk_size = 50
+                            for i in range(0, len(text_content), chunk_size):
+                                yield {"event": "text", "data": {"content": text_content[i:i + chunk_size]}}
+
                     yield {"event": "done", "data": {"session_id": session_id}}
                     return
                 else:
@@ -251,3 +263,43 @@ async def _execute_tool(project_id: uuid.UUID, tool_name: str, args: dict) -> di
     except Exception as e:
         logger.exception(f"Tool execution error: {tool_name}")
         return {"error": str(e)}
+
+
+def _extract_json(text: str) -> dict | None:
+    """Try to extract a JSON object from AI response text."""
+    text = text.strip()
+    # Try direct parse
+    try:
+        result = json.loads(text)
+        if isinstance(result, dict):
+            return result
+    except json.JSONDecodeError:
+        pass
+    # Try extracting from markdown code block
+    import re
+    match = re.search(r"```(?:json)?\s*\n?(.*?)\n?```", text, re.DOTALL)
+    if match:
+        try:
+            result = json.loads(match.group(1).strip())
+            if isinstance(result, dict):
+                return result
+        except json.JSONDecodeError:
+            pass
+    # Try finding first { ... } pair
+    start = text.find("{")
+    if start != -1:
+        depth = 0
+        for i in range(start, len(text)):
+            if text[i] == "{":
+                depth += 1
+            elif text[i] == "}":
+                depth -= 1
+            if depth == 0:
+                try:
+                    result = json.loads(text[start:i + 1])
+                    if isinstance(result, dict):
+                        return result
+                except json.JSONDecodeError:
+                    pass
+                break
+    return None

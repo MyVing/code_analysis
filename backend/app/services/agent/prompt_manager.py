@@ -1,3 +1,4 @@
+import json
 import uuid
 
 from sqlalchemy import select, func
@@ -85,3 +86,32 @@ class PromptManager:
             file_count=file_count or 0,
             symbol_count=symbol_count or 0,
         )
+
+    async def build_structured_system_prompt(
+        self,
+        db: AsyncSession,
+        project_id: uuid.UUID,
+        output_schema: dict,
+    ) -> str:
+        base_prompt = await self.build_system_prompt(db, project_id)
+
+        schema_instruction = f"""
+
+## 结构化输出要求（最高优先级）
+
+你必须严格按照以下 JSON Schema 返回分析结果，不要返回 Markdown 文本，只返回纯 JSON。
+
+### 输出 JSON Schema:
+```json
+{json.dumps(output_schema, ensure_ascii=False, indent=2)}
+```
+
+### 规则：
+1. 你的最终回复必须是一个合法的 JSON 对象，严格符合上述 Schema
+2. 不要在 JSON 外包裹 Markdown 代码块标记（不要写 ```json）
+3. 不要添加任何解释性文字，只输出 JSON
+4. 对于 Schema 中定义的每个字段，尽量填充真实数据，如果无法获取则填 null 或空字符串
+5. 数组字段如果无数据则填空数组 []
+6. 在工具调用阶段正常使用工具收集信息，只在最终输出时返回 JSON"""
+
+        return base_prompt + schema_instruction

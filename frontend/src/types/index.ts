@@ -150,4 +150,28 @@ export interface ChatMessage {
   toolArgs?: Record<string, any>;
   isStreaming?: boolean;
   toolSteps?: { tool: string; args?: Record<string, any> }[];
+  structuredData?: Record<string, any>;
+  outputSchema?: Record<string, any>;
+}
+
+export interface PromptParam {
+  key: string;
+  label: string;
+  type: 'text' | 'select';
+  required: boolean;
+  placeholder?: string;
+  options?: string[];
+}
+
+export interface PromptTemplate {
+  id: string;
+  name: string;
+  icon: string;
+  description: string;
+  category: string;
+  prompt_template: string;
+  parameters: PromptParam[];
+  output_schema: Record<string, any> | null;
+  sort_order: number;
+  is_active: boolean;
 }
