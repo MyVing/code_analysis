@@ -9,7 +9,7 @@ from app.api.deps import get_db
 from app.core.exceptions import ProjectNotFoundError, ProjectNotReadyError
 from app.models.project import Project, ProjectStatus
 from app.schemas.chat import ChatRequest
-from app.services.agent.claude_client import run_agent_loop
+from app.services.agent.langgraph_client import run_agent_loop
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 

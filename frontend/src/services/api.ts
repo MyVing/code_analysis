@@ -14,7 +14,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   return res.json();
 }
 
-import type { Project, Symbol, CallGraphEdge, GraphData, ImportRecord, PromptTemplate } from '@/types';
+import type { Project, Symbol, CallGraphEdge, GraphData, ImportRecord, PromptTemplate, GitCommit, CommitDiff, FileDiff } from '@/types';
 
 export const api = {
   // Projects
@@ -25,7 +25,22 @@ export const api = {
   deleteProject: (id: string) => request<void>(`/projects/${id}`, { method: 'DELETE' }),
   listProjectFiles: (id: string) => request<any[]>(`/projects/${id}/files`),
 
-  // Symbols
+  // Commit comparison
+  listCommits: (projectId: string, limit = 50, ref?: string) => {
+    const qs = new URLSearchParams({ limit: String(limit) });
+    if (ref) qs.set('ref', ref);
+    return request<GitCommit[]>(`/projects/${projectId}/commits?${qs}`);
+  },
+  compareCommits: (projectId: string, baseCommit: string, headCommit: string, filePattern?: string) => {
+    const qs = new URLSearchParams({ base_commit: baseCommit, head_commit: headCommit });
+    if (filePattern) qs.set('file_pattern', filePattern);
+    return request<CommitDiff>(`/projects/${projectId}/commit-diffs?${qs}`);
+  },
+  getFileDiff: (projectId: string, baseCommit: string, headCommit: string, path: string) => {
+    const qs = new URLSearchParams({ base_commit: baseCommit, head_commit: headCommit, path });
+    return request<FileDiff>(`/projects/${projectId}/commit-diffs/file?${qs}`);
+  },
+
   querySymbols: (params?: { name?: string; kind?: string; file_id?: string }) => {
     const qs = new URLSearchParams();
     if (params?.name) qs.set('name', params.name);

@@ -18,7 +18,9 @@ tree-sitter-java==0.23.5
 gitpython==3.1.50
 
 # AI
-anthropic==0.116.0
+langchain>=0.3
+langgraph>=0.4
+langchain-openai>=0.3
 
 # WebSocket
 websockets>=15.0

@@ -1,0 +1,9 @@
+.comparison-page { padding: 24px; }
+.comparison-controls { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; }
+.comparison-controls select { max-width: 360px; margin-left: 6px; padding: 6px; }
+.comparison-summary { padding: 12px; background: #f3f4f6; margin-bottom: 16px; }
+.comparison-body { display: grid; grid-template-columns: 280px 1fr; gap: 16px; }
+.changed-files { display: flex; flex-direction: column; gap: 6px; }
+.changed-files button { text-align: left; padding: 8px; border: 1px solid #ddd; background: white; cursor: pointer; }
+.diff-viewer { min-height: 400px; overflow: auto; background: #111827; color: #e5e7eb; padding: 16px; white-space: pre-wrap; }
+.comparison-error { color: #b91c1c; }

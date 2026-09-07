@@ -20,21 +20,29 @@ class Settings(BaseSettings):
     TEST_FILE_PREFIXES: list[str] = ["Test"]
     TEST_FILE_SUFFIXES: list[str] = ["Test.java", "Tests.java", "TestCase.java", "IT.java"]
 
-    ANTHROPIC_API_KEY: str | None = None
-    ANTHROPIC_AUTH_TOKEN: str | None = None
-    ANTHROPIC_BASE_URL: str = "https://api.anthropic.com"
-    ANTHROPIC_MODEL: str = "astron-code-latest"
-    MAX_TOKENS: int = 4096
+    # Git comparison resource limits
+    COMPARISON_MAX_COMMITS: int = 100
+    COMPARISON_MAX_FILES: int = 500
+    COMPARISON_MAX_FILE_BYTES: int = 1024 * 1024
+    COMPARISON_MAX_PATCH_BYTES: int = 5 * 1024 * 1024
 
-    # MaaS 模型路由配置
-    MAAS_API_KEY: str | None = None
-    MAAS_BASE_URL: str = "https://maas-coding-api.cn-huabei-1.xf-yun.com"
-    MODEL_ROUTER_STRATEGY: str = "round_robin"  # round_robin | random
-    MODEL_POOL: str = "xsparkx2,auto,xopdeepseekv32,xopglm51,xopqwen36v35b,xopglmv47flash"
+    LLM_BASE_URL: str = "https://api.openai.com/v1"
+    LLM_API_KEY: str | None = None
+    LLM_MODEL: str = "xopqwen36v35b"
+    LLM_MAX_TOKENS: int = 4096
+    LLM_TEMPERATURE: float = 0.7
+
+    # 多模型池配置
+    MODEL_POOL_CONFIG: str = "[]"  # JSON: [{"model_id":"x","base_url":"...","api_key":"...","max_concurrency":3}]
+    MODEL_DEFAULT_BASE_URL: str = ""
+    MODEL_DEFAULT_API_KEY: str = ""
+    MODEL_ROUTER_STRATEGY: str = "least_busy"  # least_busy | round_robin | random
+    MODEL_POOL_MAX_QUEUE_SIZE: int = 20
+    MODEL_POOL_ACQUIRE_TIMEOUT: int = 30
 
     CORS_ORIGINS: list[str] = ["http://localhost:5173", "http://localhost:3000"]
 
-    model_config = {"env_file": str(_BACKEND_DIR / ".env"), "env_file_encoding": "utf-8"}
+    model_config = {"env_file": str(_BACKEND_DIR / ".env"), "env_file_encoding": "utf-8", "extra": "ignore"}
 
 
 settings = Settings()

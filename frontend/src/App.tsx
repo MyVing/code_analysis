@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, NavLink } from 'react-router';
 import ProjectPage from '@/pages/ProjectPage';
 import AnalysisPage from '@/pages/AnalysisPage';
 import ChatPage from '@/pages/ChatPage';
+import ComparisonPage from '@/pages/ComparisonPage';
 import ToastContainer from '@/components/Toast/Toast';
 import './App.css';
 
@@ -27,6 +28,7 @@ function App() {
         <Route path="/" element={<ProjectPage />} />
         <Route path="/analysis" element={<AnalysisPage />} />
         <Route path="/chat" element={<ChatPage />} />
+        <Route path="/projects/:projectId/compare" element={<ComparisonPage />} />
       </Routes>
     </BrowserRouter>
   );

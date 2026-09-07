@@ -4,6 +4,51 @@ export type SymbolKind = 'class' | 'method' | 'function' | 'variable' | 'interfa
 
 export type ProjectStatus = 'pending' | 'cloning' | 'parsing' | 'indexing' | 'ready' | 'error';
 
+export interface GitCommit {
+  sha: string;
+  short_sha: string;
+  message: string;
+  author: string;
+  authored_at: string;
+}
+
+export type ChangeType = 'added' | 'deleted' | 'modified' | 'renamed' | 'copied';
+
+export interface ChangedFile {
+  old_path: string | null;
+  new_path: string | null;
+  change_type: ChangeType;
+  additions: number;
+  deletions: number;
+  is_binary: boolean;
+  is_truncated: boolean;
+}
+
+export interface DiffSummary {
+  files_changed: number;
+  added_files: number;
+  deleted_files: number;
+  modified_files: number;
+  renamed_files: number;
+  copied_files: number;
+  additions: number;
+  deletions: number;
+}
+
+export interface FileDiff extends ChangedFile {
+  old_content: string | null;
+  new_content: string | null;
+  patch: string | null;
+  hunks: { old_start: number; old_count: number; new_start: number; new_count: number; lines: string[] }[];
+}
+
+export interface CommitDiff {
+  base_commit: GitCommit;
+  head_commit: GitCommit;
+  summary: DiffSummary;
+  files: ChangedFile[];
+}
+
 export interface Project {
   id: string;
   name: string;
@@ -16,6 +61,7 @@ export interface Project {
   created_at: string;
   updated_at: string;
 }
+
 
 export interface Symbol {
   id: string;

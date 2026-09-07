@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router';
 import { useProjectStore } from '@/store/projectStore';
 import type { Project, ProjectStatus } from '@/types';
 import './ProjectPage.css';
@@ -89,6 +90,7 @@ export default function ProjectPage() {
               </div>
               <p className="project-meta">{p.git_url}</p>
               <p className="project-meta">{p.language} / {p.branch}</p>
+              <Link className="btn btn-sm" to={`/projects/${p.id}/compare`} onClick={(e) => e.stopPropagation()}>Compare commits</Link>
               <button
                 className="btn btn-danger btn-sm"
                 onClick={(e) => { e.stopPropagation(); deleteProject(p.id); }}
